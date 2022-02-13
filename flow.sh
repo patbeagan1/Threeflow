@@ -25,21 +25,28 @@ Usage: flow (feature_start|feature_finish
 This script attempts to follow the cactus model / threeflow
 https://www.nomachetejuggling.com/2017/04/09/a-different-branching-strategy/
 
+------------------------------------------------------------------
 (init):
     Creates the original 3 branches: develop, candidate and main
 
+(view)
+    Shows the current state of git, within the terminal.
+
+------------------------------------------------------------------
 (fs|feature_start) [branchname]:
     This will create the specified feature branch off of develop
 
 (ff|feature_finish) [branchname]:
     This will merge the specified feature branch back into develop
 
+------------------------------------------------------------------
 (ps|patch_start) [branchname]:
     This will create the specified patch branch off of candidate
 
 (pf|patch_finish) [branchname]:
     This will merge the specified patch branch back into candidate
 
+------------------------------------------------------------------
 (rs|release_start):
     This will start a new release by merging the develop branch into candidate.
     It will tag the place where it diverges from develop.
@@ -48,6 +55,7 @@ https://www.nomachetejuggling.com/2017/04/09/a-different-branching-strategy/
     This will tag the release, and merge the candidate branch into BOTH develop and main.
     The merge to develop will be a --no-ff, and the merge to main will be a fastforward.
 
+------------------------------------------------------------------
 (hs|hotfix_start) [branchname]:
     This will start a hotfix branch off of the main branch.
     It will tag the place where it diverges from main.
@@ -55,9 +63,6 @@ https://www.nomachetejuggling.com/2017/04/09/a-different-branching-strategy/
 
 (hf|hotfix_finish) [branchname]:
     This will tag the hotfix, and merge it into main, candidate, and develop.
-
-(view)
-    Shows the current state of git, within the terminal.
 
 -------------------------------------------------------------------------------
 
@@ -177,7 +182,7 @@ featureClose() {
   read -r -p "
   Warning: If you are on a multi-person team you should squash merge via github instead.
   If you're sure, press any key to continue.
-  
+
   " REPLY
   squashMerge $DEVELOP "$1"
 }
