@@ -18,6 +18,7 @@ help() {
   cat <<HELPTEXT
 
 Usage: flow (feature_start|feature_finish
+            |patch_start|patch_finish
             |release_start|release_finish
             |hotfix_start|hotfix_finish) [branchname]
 
@@ -32,6 +33,12 @@ https://www.nomachetejuggling.com/2017/04/09/a-different-branching-strategy/
 
 (ff|feature_finish) [branchname]:
     This will merge the specified feature branch back into develop
+
+(ps|patch_start) [branchname]:
+    This will create the specified patch branch off of candidate
+
+(pf|patch_finish) [branchname]:
+    This will merge the specified patch branch back into candidate
 
 (rs|release_start):
     This will start a new release by merging the develop branch into candidate.
@@ -61,54 +68,98 @@ HELPTEXT
 ## Util
 ##########
 
+header () {
+  echo
+  echo "################################"
+}
+
+footer () {
+  echo "################################"
+  echo
+}
+
 get_date() {
   date "+%y.%m.%d_%H.%M.%S"
 }
 
-autoMerge() {
+checkoutPull () {
+  header
+  echo "# Locally updating branch: $1"
+  footer
   git checkout "$1"
   git pull
-  git merge --no-ff --no-edit "$2"
+  echo
+}
+
+warnPush () {
+  header 
+  echo "# Pushing branch to origin: $1"
+  footer
   git push origin "$1"
+  echo
+}
+
+merge() {
+  checkoutPull "$1"
+  header
+  echo "# Merging $2 into $1"
+  echo "# Type: merge commit" 
+  footer
+  git merge --no-ff "$2"
+  warnPush "$1"
+}
+
+fastForwardMerge() {
+  checkoutPull "$1"
+  header
+  echo "# Merging $2 into $1"
+  echo "# Type: fastforward" 
+  footer
+  git merge --ff "$2"
+  warnPush "$1"
+}
+
+autoMerge() {
+  checkoutPull "$1"
+  header
+  echo "# Merging $2 into $1"
+  echo "# Type: automatic merge commit" 
+  footer
+  git merge --no-ff --no-edit "$2"
+  warnPush "$1"
+}
+
+ensureUpToDate() {
+  checkoutPull "$1"
+  warnPush "$1"
 }
 
 autoMergeIntegration() {
   integration_branch="$2_to_$1_v$3"
-  git checkout "$1"
-  git pull
+  checkoutPull "$1"
   git co -b "$integration_branch"
   git merge --no-edit "$2"
   git push origin "$integration_branch"
 }
 
-merge() {
-  git checkout "$1"
-  git pull
-  git merge --no-ff "$2"
-  git push origin "$1"
-}
-
-fastForwardMerge() {
-  git checkout "$1"
-  git pull
-  git merge --ff "$2"
-  git push origin "$1"
+squashMerge() {
+  if output=$(git status --porcelain) && [ -z "$output" ]; then
+    checkoutPull "$1"
+    git merge --squash "$2" && git commit
+    warnPush "$1"
+  else
+    die "No action taken. There are uncommitted changes in the working directory."
+  fi
 }
 
 tag() {
   git tag "$1"
-  git push origin "$1"
+  warnPush "$1"
 }
 
-squashMerge() {
-  if output=$(git status --porcelain) && [ -z "$output" ]; then
-    git checkout "$1"
-    git pull
-    git merge --squash "$2" && git commit
-    git push origin "$1"
-  else
-    die "No action taken. There are uncommitted changes in the working directory."
-  fi
+cutFrom() {
+  git checkout "$1"
+  git checkout -b "$2"
 }
 
 initBranches() {
@@ -121,12 +172,13 @@ initBranches() {
 ## Feature
 ##########
 
-featureCut() {
-  git checkout $DEVELOP
-  git checkout -b "$1"
-}
-
+featureCut() { cutFrom $DEVELOP "$1"; }
 featureClose() {
+  read -r -p "
+  Warning: If you are on a multi-person team you should squash merge via github instead.
+  If you're sure, press any key to continue.
+  
+  " REPLY
   squashMerge $DEVELOP "$1"
 }
 
@@ -134,20 +186,19 @@ featureClose() {
 ## Patch
 ##########
 
-patchCut() {
-  git checkout $CANDIDATE
-  git checkout -b "$1"
+patchCut() {  
+  cutFrom $CANDIDATE "$1"
 }
 
-patchClose() {
-  squashMerge $CANDIDATE "$1"
+patchClose() { 
+  squashMerge $CANDIDATE "$1" 
 }
 
 ##########
 ## Release
 ##########
 
-releaseCut() {
+releaseCut() { 
   autoMerge $CANDIDATE $DEVELOP
 }
 
@@ -155,18 +206,19 @@ releaseClose() {
   local_version="$1"
   changelog="$(git log --oneline candidate...main | cat)"
 
+  ensureUpToDate $CANDIDATE
   fastForwardMerge $MAIN $CANDIDATE
   tag v"$local_version"
 
+  header
+  footer
+  echo "# Changelog"
   echo
-  echo "================================"
-  echo " Changelog"
-  echo "================================"
-  echo
+  echo '```'
   echo "$changelog"
-  echo
-  echo "================================"
-  echo
+  echo '```'
+  header
+  footer
 
   autoMergeIntegration $DEVELOP $CANDIDATE "$local_version"
 
@@ -177,25 +229,31 @@ releaseClose() {
 ##########
 
 hotfixCut() {
-  git checkout $MAIN
-  git checkout -b "$1"
+  cutFrom $MAIN
   tag hotfix_start_"$(get_date)"
 }
 
 hotfixClose() {
   autoMerge $MAIN "$1"
   tag hotfix_"$(get_date)"
-  read -r -s -n 1 -p "Merge to main complete. Press any key to attempt a merge to candidate, and develop."
-
+  read -r -p "Merge to main complete. Press any key to attempt a merge to candidate." REPLY
   autoMerge $CANDIDATE $MAIN
+  read -r -p "Merge to candidate complete. Press any key to attempt a merge to develop." REPLY
   autoMerge $DEVELOP $MAIN
 }
+
+##########
+## Main
+##########
 
 main() {
   if [ -z "$1" ]; then
     help
     exit 1
   fi
+  
+  git fetch
+
   case "$1" in
   "help")
     help
