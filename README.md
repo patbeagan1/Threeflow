@@ -14,7 +14,7 @@ git clone git@github.com:patbeagan1/Threeflow.git
 
 2. Add the repo directory to your path
 ```bash
-cd Threeflow && export PATH="$PATH:`pwd`
+cd Threeflow && export PATH="$PATH:`pwd`"
 ```
 
 3. Rehash (so the script will be discovered, and you can use it right away)
