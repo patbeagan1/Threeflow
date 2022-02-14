@@ -14,8 +14,14 @@ DEVELOP="develop"
 CANDIDATE="candidate"
 MAIN="main"
 
+BOLD="\e[1m"
+ENDBOLD="\e[0m"
+
 help() {
-  cat <<HELPTEXT
+  OLD_IFS="$IFS"
+  IFS=	
+  echo $(
+	cat <<HELPTEXT
 
 Usage: flow (feature_start|feature_finish
             |patch_start|patch_finish
@@ -25,48 +31,45 @@ Usage: flow (feature_start|feature_finish
 This script attempts to follow the cactus model / threeflow
 https://www.nomachetejuggling.com/2017/04/09/a-different-branching-strategy/
 
-------------------------------------------------------------------
-(init):
+$BOLD(init)$ENDBOLD
     Creates the original 3 branches: develop, candidate and main
 
-(view)
+$BOLD(v|view)$ENDBOLD
     Shows the current state of git, within the terminal.
 
-------------------------------------------------------------------
-(fs|feature_start) [branchname]:
+$BOLD(fs|feature_start) [branchname]$ENDBOLD
     This will create the specified feature branch off of develop
 
-(ff|feature_finish) [branchname]:
+$BOLD(ff|feature_finish [branchname]$ENDBOLD
     This will merge the specified feature branch back into develop
 
-------------------------------------------------------------------
-(ps|patch_start) [branchname]:
+$BOLD(ps|patch_start) [branchname]$ENDBOLD
     This will create the specified patch branch off of candidate
 
-(pf|patch_finish) [branchname]:
+$BOLD(pf|patch_finish) [branchname]$ENDBOLD
     This will merge the specified patch branch back into candidate
 
-------------------------------------------------------------------
-(rs|release_start):
+$BOLD(rs|release_start)$ENDBOLD
     This will start a new release by merging the develop branch into candidate.
     It will tag the place where it diverges from develop.
 
-(rf|release_finish):
-    This will tag the release, and merge the candidate branch into BOTH develop and main.
-    The merge to develop will be a --no-ff, and the merge to main will be a fastforward.
+$BOLD(rf|release_finish)$ENDBOLD
+    This will tag the release, and merge the candidate branch into 
+	BOTH develop and main. 
+    The merge to develop will be a --no-ff, and the merge to 
+	main will be a fastforward.
 
-------------------------------------------------------------------
-(hs|hotfix_start) [branchname]:
+$BOLD(hs|hotfix_start) [branchname]$ENDBOLD
     This will start a hotfix branch off of the main branch.
-    It will tag the place where it diverges from main.
+    It will tag the place where it diverges from main. 
     Since hotfix branches are temporary, they do not have a static name.
 
-(hf|hotfix_finish) [branchname]:
+$BOLD(hf|hotfix_finish) [branchname]$ENDBOLD
     This will tag the hotfix, and merge it into main, candidate, and develop.
 
--------------------------------------------------------------------------------
-
 HELPTEXT
+)
+IFS=$OLD_IFS
 }
 
 ##########
@@ -318,7 +321,7 @@ main() {
     fi
     hotfixClose "$2"
     ;;
-  "view")
+  "view" | "v")
     git log \
       --graph \
       --abbrev-commit \
