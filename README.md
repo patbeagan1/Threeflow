@@ -27,7 +27,8 @@ hash -r
 flow.sh
 ```
 
-5. Add the export PATH statement to your `~/.bashrc` or `~/.zshrc` file
+5. Add the `export PATH="$PATH:XYZ"` statement to your `~/.bashrc` or `~/.zshrc` file. Make sure that you use the **absolute path name** for the Threeflow directory. To check and see if you did it correctly, open up a new terminal and type `echo $PATH`. You should see the Threeflow directory at the end.
+6. Update as needed by performing `git pull` in your clone 
 
 ## Usage information
 
